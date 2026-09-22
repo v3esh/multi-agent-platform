@@ -5,6 +5,8 @@ function getApiBase(): string {
     if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
       return "http://localhost:8000";
     }
+    // Return empty string to use Next.js /api rewrite proxy on hosted domains
+    return "";
   }
   if (url.endsWith("/")) {
     url = url.slice(0, -1);
