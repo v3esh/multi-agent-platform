@@ -1,4 +1,16 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+function getApiBase(): string {
+  let url = process.env.NEXT_PUBLIC_API_URL || "";
+  if (!url && typeof window !== "undefined") {
+    const origin = window.location.origin;
+    if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
+      return "http://localhost:8000";
+    }
+  }
+  if (url.endsWith("/")) {
+    url = url.slice(0, -1);
+  }
+  return url;
+}
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -18,7 +30,8 @@ async function request<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const apiBase = getApiBase();
+  const res = await fetch(`${apiBase}${path}`, {
     ...options,
     headers,
   });
@@ -44,7 +57,8 @@ export async function login(email: string, password: string): Promise<string> {
   formData.append("username", email);
   formData.append("password", password);
 
-  const res = await fetch(`${API_BASE}/api/auth/login`, {
+  const apiBase = getApiBase();
+  const res = await fetch(`${apiBase}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: formData.toString(),
