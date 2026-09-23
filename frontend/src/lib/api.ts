@@ -96,16 +96,6 @@ export async function login(email: string, password: string): Promise<string> {
   }
 }
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: "Login failed" }));
-    throw new Error(err.detail || "Login failed");
-  }
-
-  const data = await res.json();
-  localStorage.setItem("access_token", data.access_token);
-  return data.access_token;
-}
-
 export function logout() {
   localStorage.removeItem("access_token");
   window.location.href = "/login";
