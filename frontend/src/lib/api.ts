@@ -1,12 +1,21 @@
-function getApiBase(): string {
+export function getApiBase(): string {
   let url = process.env.NEXT_PUBLIC_API_URL || "";
-  if (!url && typeof window !== "undefined") {
+
+  if (typeof window !== "undefined") {
     const origin = window.location.origin;
-    if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
-      return "http://localhost:8000";
+    const isLocalhost = origin.includes("localhost") || origin.includes("127.0.0.1");
+
+    if (!isLocalhost) {
+      if (!url || url.includes("localhost") || url.includes("127.0.0.1")) {
+        return "";
+      }
+    } else {
+      if (!url) {
+        return "http://localhost:8000";
+      }
     }
-    return "";
   }
+
   if (url && !url.startsWith("http://") && !url.startsWith("https://")) {
     url = `https://${url}`;
   }

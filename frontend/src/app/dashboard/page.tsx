@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { agentsApi, type Agent } from "@/lib/api";
+import { agentsApi, getApiBase, type Agent } from "@/lib/api";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
@@ -201,7 +201,7 @@ export default function DashboardPage() {
             desc="Detailed audit logs and execution history"
           />
           <QuickLink
-            href="http://localhost:8000/docs"
+            href={getApiBase() ? `${getApiBase()}/docs` : "/docs"}
             icon="📡"
             title="API Explorer"
             desc="Browse REST API documentation via Swagger"
