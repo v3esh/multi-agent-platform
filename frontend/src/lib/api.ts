@@ -5,8 +5,10 @@ function getApiBase(): string {
     if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
       return "http://localhost:8000";
     }
-    // Return empty string to use Next.js /api rewrite proxy on hosted domains
     return "";
+  }
+  if (url && !url.startsWith("http://") && !url.startsWith("https://")) {
+    url = `https://${url}`;
   }
   if (url.endsWith("/")) {
     url = url.slice(0, -1);
@@ -33,24 +35,33 @@ async function request<T>(
   }
 
   const apiBase = getApiBase();
-  const res = await fetch(`${apiBase}${path}`, {
-    ...options,
-    headers,
-  });
+  const targetUrl = path.startsWith("http") ? path : `${apiBase}${path}`;
 
-  if (res.status === 401) {
-    localStorage.removeItem("access_token");
-    window.location.href = "/login";
-    throw new Error("Unauthorized");
+  try {
+    const res = await fetch(targetUrl, {
+      ...options,
+      headers,
+    });
+
+    if (res.status === 401) {
+      localStorage.removeItem("access_token");
+      window.location.href = "/login";
+      throw new Error("Unauthorized");
+    }
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `Server response error (${res.status} ${res.statusText})` }));
+      throw new Error(err.detail || `Request failed with status ${res.status}`);
+    }
+
+    if (res.status === 204) return undefined as unknown as T;
+    return res.json();
+  } catch (err: any) {
+    if (err.message === "Failed to fetch") {
+      throw new Error(`Connection failed to API target [${targetUrl}]. Check backend server status.`);
+    }
+    throw err;
   }
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(err.detail || "Request failed");
-  }
-
-  if (res.status === 204) return undefined as unknown as T;
-  return res.json();
 }
 
 // Auth
@@ -60,11 +71,30 @@ export async function login(email: string, password: string): Promise<string> {
   formData.append("password", password);
 
   const apiBase = getApiBase();
-  const res = await fetch(`${apiBase}/api/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: formData.toString(),
-  });
+  const targetUrl = `${apiBase}/api/auth/login`;
+
+  try {
+    const res = await fetch(targetUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData.toString(),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `Server error (${res.status} ${res.statusText})` }));
+      throw new Error(err.detail || `Login failed with status ${res.status}`);
+    }
+
+    const data = await res.json();
+    localStorage.setItem("access_token", data.access_token);
+    return data.access_token;
+  } catch (err: any) {
+    if (err.message === "Failed to fetch") {
+      throw new Error(`Unable to reach backend API at [${targetUrl}]. Please ensure backend container is running.`);
+    }
+    throw err;
+  }
+}
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "Login failed" }));
