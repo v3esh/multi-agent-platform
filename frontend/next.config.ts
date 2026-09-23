@@ -2,11 +2,18 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async rewrites() {
-    const backendUrl = (
+    let backendUrl = (
       process.env.BACKEND_URL ||
       process.env.NEXT_PUBLIC_API_URL ||
       "http://multi-agent-platform.railway.internal:8000"
-    ).replace(/\/$/, "");
+    )
+      .trim()
+      .replace(/\/+$/, "");
+
+    // Rewrite destinations must be absolute URLs; accept bare hostnames from env.
+    if (!/^https?:\/\//i.test(backendUrl)) {
+      backendUrl = `https://${backendUrl}`;
+    }
 
     return [
       {
